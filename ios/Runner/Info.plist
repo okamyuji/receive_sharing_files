@@ -47,18 +47,35 @@
 	<true/>
 	<key>AppGroupId</key>
 	<string>$(CUSTOM_GROUP_ID)</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-	<dict>
-		<key>CFBundleTypeRole</key>
-		<string>Editor</string>
-		<key>CFBundleURLSchemes</key>
-		<array>
-		<string>ShareMedia-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-		</array>
-	</dict>
-	</array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>To upload photos, please allow permission to access your photo library.</string>
+    <!-- URLスキーム設定 -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>ShareMedia-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+            </array>
+            <key>CFBundleURLName</key>
+            <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+        </dict>
+    </array>
+    <!-- プライバシー権限 -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>写真の共有のために必要です</string>
+    
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>共有された写真を保存するために必要です</string>
+    
+    <key>NSMicrophoneUsageDescription</key>
+    <string>音声ファイルの共有のために必要です</string>
+    
+    <key>NSCameraUsageDescription</key>
+    <string>写真・動画の共有のために必要です</string>
+
+    <!-- アプリグループ識別子 -->
+    <key>AppGroupId</key>
+    <string>group.com.example.receiveSharingFiles</string>
 </dict>
 </plist>

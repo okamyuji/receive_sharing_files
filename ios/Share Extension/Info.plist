@@ -2,43 +2,60 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>AppGroupId</key>
-  <string>$(CUSTOM_GROUP_ID)</string>
-  <key>NSExtension</key>
-  <dict>
-    <key>NSExtensionAttributes</key>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <!-- アプリグループ識別子 -->
+    <key>AppGroupId</key>
+    <string>group.com.example.receiveSharingFiles</string>
+
+    <!-- Share Extension設定 -->
+    <key>NSExtension</key>
     <dict>
-      <key>PHSupportedMediaTypes</key>
-      <array>
-        <!-- TODO: Add this flag, if you want to support sharing video into your app -->
-        <string>Video</string>
-        <!-- TODO: Add this flag, if you want to support sharing images into your app -->
-        <string>Image</string>
-      </array>
-      <key>NSExtensionActivationRule</key>
-      <dict>
-        <!-- TODO: Add this flag, if you want to support sharing text into your app -->
-        <key>NSExtensionActivationSupportsText</key>
-        <true/>
-        <!-- TODO: Add this tag, if you want to support sharing urls into your app -->
-        <key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
-        <integer>1</integer>
-        <!-- TODO: Add this flag, if you want to support sharing images into your app -->
-        <key>NSExtensionActivationSupportsImageWithMaxCount</key>
-        <integer>100</integer>
-        <!-- TODO: Add this flag, if you want to support sharing video into your app -->
-        <key>NSExtensionActivationSupportsMovieWithMaxCount</key>
-        <integer>100</integer>
-        <!-- TODO: Add this flag, if you want to support sharing other files into your app -->
-        <!-- TODO: Change the integer to however many files you want to be able to share at a time -->
-        <key>NSExtensionActivationSupportsFileWithMaxCount</key>
-        <integer>1</integer>
-      </dict>
+        <key>NSExtensionAttributes</key>
+        <dict>
+            <key>NSExtensionActivationRule</key>
+            <dict>
+                <!-- テキスト共有サポート -->
+                <key>NSExtensionActivationSupportsText</key>
+                <true/>
+                
+                <!-- URL共有サポート -->
+                <key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
+                <integer>1</integer>
+                
+                <!-- 画像共有サポート -->
+                <key>NSExtensionActivationSupportsImageWithMaxCount</key>
+                <integer>100</integer>
+                
+                <!-- 動画共有サポート -->
+                <key>NSExtensionActivationSupportsMovieWithMaxCount</key>
+                <integer>100</integer>
+                
+                <!-- その他のファイル共有サポート -->
+                <key>NSExtensionActivationSupportsFileWithMaxCount</key>
+                <integer>100</integer>
+            </dict>
+            
+            <!-- サポートするメディアタイプ -->
+            <key>PHSupportedMediaTypes</key>
+            <array>
+                <string>Image</string>
+                <string>Video</string>
+            </array>
+        </dict>
+        
+        <key>NSExtensionMainStoryboard</key>
+        <string>MainInterface</string>
+        
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.share-services</string>
     </dict>
-    <key>NSExtensionMainStoryboard</key>
-    <string>MainInterface</string>
-    <key>NSExtensionPointIdentifier</key>
-    <string>com.apple.share-services</string>
-  </dict>
+
+    <!-- プライバシー権限（Share Extension用） -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>写真の共有のために必要です</string>
+    
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>共有された写真を保存するために必要です</string>
 </dict>
 </plist>
