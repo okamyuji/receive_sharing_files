@@ -259,7 +259,7 @@ pubspec.yaml に追記し、flutter pub get を実行
 
 ```yaml
 dependencies:
-  receive_sharing_intent: ^1.4.6
+  receive_sharing_intent: ^1.8.1
 ```
 
 Dartコード例
