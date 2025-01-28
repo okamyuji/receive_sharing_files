@@ -11,22 +11,33 @@
 ## 1. macOS環境の準備
 
 1. macOSのバージョン確認  
-   - Apple公式がサポートする最新のmacOSを使用してください。  
-   - 古すぎるバージョンの場合、XcodeやFlutterの対応が切れていることがあるため注意が必要です。
+    - Apple公式がサポートする最新のmacOSを使用してください。  
+    - 古すぎるバージョンの場合、XcodeやFlutterの対応が切れていることがあるため注意が必要です。
 
 2. Xcodeインストール  
-   - [Mac App Store](https://apps.apple.com/jp/app/xcode/id497799835?mt=12)から最新版のXcodeをインストール。
-   - Xcodeを起動し、追加のコンポーネント(シミュレータなど)がある場合はインストールを完了させます。
-   - `xcode-select --install` をターミナルで実行し、Command Line Toolsも忘れずに導入してください。
+    - [Mac App Store](https://apps.apple.com/jp/app/xcode/id497799835?mt=12)から最新版のXcodeをインストール。
+    - Xcodeを起動し、追加のコンポーネント(シミュレータなど)がある場合はインストールを完了させます。
+    - `xcode-select --install` をターミナルで実行し、Command Line Toolsも忘れずに導入してください。
 
 3. Homebrewのインストール（任意）  
-   - パッケージ管理システムとしてHomebrewを導入しておくと、SDKやツールなどのインストールが容易になります。  
-   - [公式サイト](https://brew.sh/)の手順に従って導入し、`brew update`で常に最新状態に保ちます。
+    - パッケージ管理システムとしてHomebrewを導入しておくと、SDKやツールなどのインストールが容易になります。  
+    - [公式サイト](https://brew.sh/)の手順に従って導入し、`brew update`で常に最新状態に保ちます。
 
 4. CocoaPodsのインストール  
-   - FlutterプロジェクトのiOS依存関係を管理するために必要です。  
-   - `sudo gem install cocoapods` でインストールします。  
-   - インストール後、`pod setup` や `pod repo update` を実行し、初期設定を済ませておきます。
+    - FlutterプロジェクトのiOS依存関係を管理するために必要です。  
+    - `sudo gem install cocoapods` でインストールします。  
+    - インストール後、`pod setup` や `pod repo update` を実行し、初期設定を済ませておきます。
+    - CocoaPodsのPodfile設定
+      - `ios/Podfile`に以下のような依存関係を記述してください。
+
+      ```ruby
+      target 'Runner' do
+        use_frameworks!
+        flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+      end
+      ```
+
+      - 必要に応じてターゲットごとの設定を追記し、`pod install` を実行してください。
 
 5. Xcodeのライセンス確認・Apple Developerアカウント  
    - 実機デバッグやTestFlightで配布する場合には、Apple Developerアカウントが必要です。  
@@ -79,7 +90,7 @@ your_flutter_app/
 
 1. Xcodeを開き、`Runner.xcworkspace` or `Runner.xcodeproj` を開く。
 2. 左ペインで `Runner`プロジェクトを選択し、`Target`を追加 (`+` ボタンなど)。
-3. **iOS > Application Extension > Share Extension** を選び、Share Extension のバンドルID等を設定。
+3. **iOS > Application Extension > Share Extension** を選び、Share ExtensionのバンドルID等を設定。
 
 ---
 
@@ -88,7 +99,7 @@ your_flutter_app/
 Share Extension用に、一般的には以下のファイルを用意します。
 
 1. **Info.plist**  
-   - Share Extension固有の設定。対応する `NSExtension` や `NSExtensionAttributes` を定義。  
+   - Share Extension固有の設定。対応する`NSExtension`や`NSExtensionAttributes`を定義。  
    - 例:
 
      ```xml
@@ -114,7 +125,7 @@ Share Extension用に、一般的には以下のファイルを用意します�
      </dict>
      ```
 
-   - **注意事項**: `NSExtensionMainStoryboard` が不要な場合は削除し、プログラムのみで画面を組み立てることも可能です。
+   - **注意事項**: `NSExtensionMainStoryboard`が不要な場合は削除し、プログラムのみで画面を組み立てることも可能です。
 
 2. **ShareViewController.swift**  
    - 実際の共有処理(ファイル取得、UserDefaultsを介したデータ保存、ホストアプリへのリダイレクト)を実装。
@@ -141,19 +152,41 @@ Share Extension用に、一般的には以下のファイルを用意します�
 
 ### 3.3. アプリグループ (App Groups) の設定
 
-1. **メインアプリの`Runner.entitlements`にApp Groupsを追加**
+- Main AppとShare Extensionが同じApp Groupを共有する設定が必要です。
+- 以下の設定が欠かせません。
 
-   ```xml
-   <?xml version="1.0" encoding="UTF-8"?>
-   <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-   <plist version="1.0">
-   <dict>
-     <key>com.apple.security.application-groups</key>
-     <array>
-       <string>group.com.example.receiveSharingFiles</string>
-     </array>
-   </dict>
-   </plist>
+#### Runner.entitlements
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.application-groups</key>
+  <array>
+    <string>group.com.example.receiveSharingFiles</string>
+  </array>
+</dict>
+</plist>
+```
+
+#### Share Extension.entitlements
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.application-groups</key>
+  <array>
+    <string>group.com.example.receiveSharingFiles</string>
+  </array>
+</dict>
+</plist>
+```
+
+- Main AppとShare Extensionの両方でApp Groupsを一致させる必要があります。
+- Provisioning ProfileやApple Developerサイトでの設定も同様に整合性を確保してください。
 
 ### 3.4. バンドルIDの整合性
 
@@ -189,6 +222,16 @@ Share Extensionからホストアプリへ戻るために、カスタムURLス�
     `ShareMedia-com.example.receiveSharingFiles://dataUrl=ShareKey#file`
 
 **注意事項**: iOSバージョンによっては非推奨メソッド（openURL: vs openURL:options:completionHandler:）があるため、代替APIの利用検討が必要。
+
+---
+
+### 3.3. ビルド順序の設定
+
+- **Runner** と **Share Extension** の正しいビルド順序を設定する必要があります。
+- RunnerのBuild Phasesで **Target Dependencies** にShare Extensionを追加。
+- Share ExtensionのBuild Settingsで、`ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES` をNOに設定。
+
+---
 
 ### 3.6. ShareViewControllerの概要
 
@@ -258,7 +301,7 @@ Share Extensionからホストアプリへ戻るために、カスタムURLス�
 
 ### 4.1. プラグイン: receive_sharing_intent
 
-pubspec.yaml に追記し、flutter pub get を実行
+pubspec.yaml に以下のように追記し、flutter pub get を実行。
 
 ```yaml
 dependencies:
@@ -349,7 +392,7 @@ class _MyAppState extends State<MyApp> {
 3. Share Extensionがシミュレータで正しく動作しない
     - シミュレータ特有の制限により、共有フローが試せない場合があります。なるべく実機テストを実施してください。
 4. UserDefaultsの読み書きに失敗
-    - suiteName がApp Groupsと一致しないと値が保存されない。
+    - suiteNameがApp Groupsと一致しないと値が保存されない。
     - デバッグログを出力して、どの段階で値が保存され、読み出せていないのかを確認してください。
 5. iOS版のフォアグラウンド/バックグラウンド実行時間
     - Extensionがバックグラウンドに移行する際、処理が早期終了するケースがあります。大きなファイルコピーを行う場合は注意。
