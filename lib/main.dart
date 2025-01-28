@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -8,8 +9,42 @@ import 'package:open_file/open_file.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final logger = Logger();
+
+// 保存したファイルの情報を管理するモデルクラス
+class SavedFile {
+  final String path;
+  final String type;
+  final String? thumbnail;
+  final double? duration;
+  final DateTime savedAt;
+
+  SavedFile({
+    required this.path,
+    required this.type,
+    this.thumbnail,
+    this.duration,
+    required this.savedAt,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'path': path,
+        'type': type,
+        'thumbnail': thumbnail,
+        'duration': duration,
+        'savedAt': savedAt.toIso8601String(),
+      };
+
+  factory SavedFile.fromJson(Map<String, dynamic> json) => SavedFile(
+        path: json['path'],
+        type: json['type'],
+        thumbnail: json['thumbnail'],
+        duration: json['duration'],
+        savedAt: DateTime.parse(json['savedAt']),
+      );
+}
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,11 +64,13 @@ class MyAppState extends State<MyApp> {
   final _sharedFiles = <SharedMediaFile>[];
   bool _isProcessing = false;
   final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+  static const _savedFilesKey = 'saved_files';
+  final _savedFiles = <SavedFile>[];
 
   @override
   void initState() {
     super.initState();
-    logger.d("MyAppState.initState");
+    _loadSavedFiles();
     _initializeSharing();
   }
 
@@ -160,48 +197,98 @@ class MyAppState extends State<MyApp> {
     try {
       logger.d("Saving file from: $sourcePath");
 
-      // アプリのドキュメントディレクトリを取得
       final appDir = await getApplicationDocumentsDirectory();
       final fileName = path.basename(sourcePath);
-      final targetPath = path.join(appDir.path, fileName);
+      final sourceFile = File(sourcePath);
 
-      // 同名ファイルが存在する場合は連番を付与
-      String uniquePath = targetPath;
-      int counter = 1;
-      while (await File(uniquePath).exists()) {
-        final extension = path.extension(fileName);
-        final nameWithoutExtension = path.basenameWithoutExtension(fileName);
-        uniquePath = path.join(
-            appDir.path, '${nameWithoutExtension}_$counter$extension');
-        counter++;
-      }
+      // 保存先のパスを生成（重複チェック込み）
+      final targetPath = await _generateUniqueFilePath(appDir.path, fileName);
 
       // ファイルをコピー
-      await File(sourcePath).copy(uniquePath);
-      logger.d("File saved to: $uniquePath");
+      await sourceFile.copy(targetPath);
+      logger.d("File saved to: $targetPath");
+
+      // SavedFileオブジェクトを作成
+      final savedFile = SavedFile(
+        path: targetPath,
+        type: lookupMimeType(targetPath) ?? 'application/octet-stream',
+        savedAt: DateTime.now(),
+      );
+
+      setState(() {
+        _savedFiles.add(savedFile);
+      });
+
+      // 保存済みファイルリストを更新
+      await _saveSavedFilesList();
 
       if (mounted) {
         _scaffoldMessengerKey.currentState?.showSnackBar(
-          SnackBar(
-            content: Text('ファイルを保存しました: ${path.basename(uniquePath)}'),
-            duration: const Duration(seconds: 2),
-          ),
+          SnackBar(content: Text('ファイルを保存しました: ${path.basename(targetPath)}')),
         );
       }
 
-      return uniquePath;
+      return targetPath;
     } catch (e, stackTrace) {
       logger.e("Error saving file", error: e, stackTrace: stackTrace);
-
       if (mounted) {
         _scaffoldMessengerKey.currentState?.showSnackBar(
-          SnackBar(
-            content: Text('ファイルの保存に失敗しました: ${e.toString()}'),
-            duration: const Duration(seconds: 3),
-          ),
+          SnackBar(content: Text('ファイルの保存に失敗しました: ${e.toString()}')),
         );
       }
       return null;
+    }
+  }
+
+  Future<String> _generateUniqueFilePath(
+      String dirPath, String fileName) async {
+    final extension = path.extension(fileName);
+    final nameWithoutExt = path.basenameWithoutExtension(fileName);
+    var finalPath = path.join(dirPath, fileName);
+    var counter = 1;
+
+    while (await File(finalPath).exists()) {
+      finalPath = path.join(
+        dirPath,
+        '${nameWithoutExt}_${counter.toString().padLeft(3, '0')}$extension',
+      );
+      counter++;
+    }
+
+    return finalPath;
+  }
+
+  Future<void> _loadSavedFiles() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedFilesJson = prefs.getStringList(_savedFilesKey) ?? [];
+
+      setState(() {
+        _savedFiles.clear();
+        for (final fileJson in savedFilesJson) {
+          final fileMap = json.decode(fileJson);
+          final file = SavedFile.fromJson(fileMap);
+          if (File(file.path).existsSync()) {
+            _savedFiles.add(file);
+          }
+        }
+      });
+
+      logger.d('Loaded ${_savedFiles.length} saved files');
+    } catch (e, stackTrace) {
+      logger.e('Error loading saved files', error: e, stackTrace: stackTrace);
+    }
+  }
+
+  Future<void> _saveSavedFilesList() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final filesJson =
+          _savedFiles.map((f) => json.encode(f.toJson())).toList();
+      await prefs.setStringList(_savedFilesKey, filesJson);
+      logger.d('Saved files list updated: ${_savedFiles.length} files');
+    } catch (e, stackTrace) {
+      logger.e('Error saving files list', error: e, stackTrace: stackTrace);
     }
   }
 
@@ -213,44 +300,66 @@ class MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('共有ファイル受信'),
         ),
-        body: _sharedFiles.isEmpty
+        body: _savedFiles.isEmpty && _sharedFiles.isEmpty
             ? const Center(child: Text('共有されたファイルはありません'))
-            : ListView.builder(
-                itemCount: _sharedFiles.length,
-                itemBuilder: (context, index) {
-                  final file = _sharedFiles[index];
-                  return Card(
-                    margin: const EdgeInsets.all(8.0),
-                    child: ListTile(
-                      leading: Icon(_getFileIcon(file.path)),
-                      title: Text(file.path.split('/').last),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Type: ${file.type}'),
-                          if (file.duration != null)
-                            Text('Duration: ${file.duration}ms'),
-                          if (file.thumbnail != null)
-                            Text('Thumbnail: ${file.thumbnail}'),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.save),
-                            onPressed: () => _saveFile(file.path),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.open_in_new),
-                            onPressed: () => _openFile(file.path),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+            : ListView(
+                children: [
+                  ..._savedFiles.map((file) => _buildFileCard(file)),
+                  ..._sharedFiles.map((file) => _buildSharedFileCard(file)),
+                ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildFileCard(SavedFile file) {
+    return Card(
+      margin: const EdgeInsets.all(8.0),
+      child: ListTile(
+        leading: Icon(_getFileIcon(file.path)),
+        title: Text(path.basename(file.path)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Type: ${file.type}'),
+            Text('保存日時: ${file.savedAt.toLocal()}'),
+          ],
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.open_in_new),
+          onPressed: () => _openFile(file.path),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSharedFileCard(SharedMediaFile file) {
+    return Card(
+      margin: const EdgeInsets.all(8.0),
+      child: ListTile(
+        leading: Icon(_getFileIcon(file.path)),
+        title: Text(file.path.split('/').last),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Type: ${file.type}'),
+            if (file.duration != null) Text('Duration: ${file.duration}ms'),
+            if (file.thumbnail != null) Text('Thumbnail: ${file.thumbnail}'),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: () => _saveFile(file.path),
+            ),
+            IconButton(
+              icon: const Icon(Icons.open_in_new),
+              onPressed: () => _openFile(file.path),
+            ),
+          ],
+        ),
       ),
     );
   }
