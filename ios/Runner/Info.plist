@@ -54,6 +54,8 @@
             <key>CFBundleURLSchemes</key>
             <array>
                 <string>ShareMedia-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+                <string>shareddocuments</string>
+                <string>quicklook</string>
             </array>
             <key>CFBundleURLName</key>
             <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
@@ -77,5 +79,29 @@
     <!-- アプリグループ識別子 -->
     <key>AppGroupId</key>
     <string>group.com.example.receiveSharingFiles</string>
+
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <!-- ドキュメントタイプの設定 -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>All Files</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.data</string>
+                <string>public.content</string>
+                <string>public.audio</string>
+                <string>public.movie</string>
+                <string>public.image</string>
+                <string>public.text</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
