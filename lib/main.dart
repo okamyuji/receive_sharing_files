@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:mime/mime.dart';
 import 'package:open_file/open_file.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 final logger = Logger();
@@ -150,6 +153,58 @@ class MyAppState extends State<MyApp> {
     }
   }
 
+  /// ファイルを保存する
+  ///
+  /// [sourcePath] 元のファイルパス
+  Future<String?> _saveFile(String sourcePath) async {
+    try {
+      logger.d("Saving file from: $sourcePath");
+
+      // アプリのドキュメントディレクトリを取得
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = path.basename(sourcePath);
+      final targetPath = path.join(appDir.path, fileName);
+
+      // 同名ファイルが存在する場合は連番を付与
+      String uniquePath = targetPath;
+      int counter = 1;
+      while (await File(uniquePath).exists()) {
+        final extension = path.extension(fileName);
+        final nameWithoutExtension = path.basenameWithoutExtension(fileName);
+        uniquePath = path.join(
+            appDir.path, '${nameWithoutExtension}_$counter$extension');
+        counter++;
+      }
+
+      // ファイルをコピー
+      await File(sourcePath).copy(uniquePath);
+      logger.d("File saved to: $uniquePath");
+
+      if (mounted) {
+        _scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text('ファイルを保存しました: ${path.basename(uniquePath)}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      return uniquePath;
+    } catch (e, stackTrace) {
+      logger.e("Error saving file", error: e, stackTrace: stackTrace);
+
+      if (mounted) {
+        _scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text('ファイルの保存に失敗しました: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -179,9 +234,18 @@ class MyAppState extends State<MyApp> {
                             Text('Thumbnail: ${file.thumbnail}'),
                         ],
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.open_in_new),
-                        onPressed: () => _openFile(file.path),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.save),
+                            onPressed: () => _saveFile(file.path),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.open_in_new),
+                            onPressed: () => _openFile(file.path),
+                          ),
+                        ],
                       ),
                     ),
                   );
