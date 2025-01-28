@@ -152,7 +152,7 @@ Share Extension用に、一般的には以下のファイルを用意します�
    </dict>
    </plist>
 
-### 3.4 バンドルIDの整合性
+### 3.4. バンドルIDの整合性
 
 - メインアプリ: com.example.receiveSharingFiles
 - Share Extension: com.example.receiveSharingFiles.Share-Extension
@@ -253,7 +253,7 @@ Share Extensionからホストアプリへ戻るために、カスタムURLス�
 
 ## 4. Flutter側で受け取る実装
 
-### 4.1 プラグイン: receive_sharing_intent
+### 4.1. プラグイン: receive_sharing_intent
 
 pubspec.yaml に追記し、flutter pub get を実行
 
